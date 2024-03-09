@@ -28,7 +28,16 @@ async def on_ready():
     print(f'Guild Members:\n - {members}')
 @bot.command(name='info', help='Tells you about the bot')
 async def info(ctx):
-    print("Received info command")
     await ctx.channel.send(f"{ctx.author.mention} I'm the base 640 bot.")
+
+@bot.command(name='wiki', help='Shows the wiki link')
+async def wiki(ctx):
+    await ctx.channel.send(f"{ctx.author.mention} https://docs.google.com/document/d/1iY0VdTwpo1d-LvCg-Isl-zxfPQZ3nuafMLdyB044npQ/edit?usp=sharing")
+
+@bot.command(name='sprite', help='Shows a sprite')
+async def sprite(ctx, arg):
+    await ctx.channel.send(f"https://play.dawn-ps.com/sprites/custom/{arg.lower()}.png")
+
+
 
 bot.run(TOKEN)
