@@ -3,16 +3,28 @@ import os
 import discord
 from dotenv import load_dotenv
 from discord.ext import commands
+from pathlib import Path
 
 from downloading import get_ts
 
-BASETARGET = 'https://github.com/matteoruscitti/Dawn/tree/master/data'
-SANCTTARGET = 'https://github.com/matteoruscitti/Dawn/blob/master/data/mods/gen9sanctified/'
-
+BASETARGET = 'https://raw.githubusercontent.com/matteoruscitti/Dawn/master/data/'
+SANCTTARGET = 'https://raw.githubusercontent.com/matteoruscitti/Dawn/master/data/mods/gen9sanctified/'
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
-AUTH = os.getenv('GIT_AUTH')
+#AUTH = os.getenv('GIT_AUTH')
+
+#if not Path("baseabilities.ts").exists():
+#    get_ts(BASETARGET, "abilities", AUTH , "base")
+#if not Path("baselearnsets.ts").exists():
+#    get_ts(BASETARGET, "learnsets", AUTH, "base")
+#if not Path("basemoves.ts").exists():
+#    get_ts(BASETARGET, "moves", AUTH, "base")
+#if not Path("basepokedex.ts").exists():
+#    get_ts(BASETARGET, "pokedex", AUTH, "base")
+
+
+
 
 intents = discord.Intents.default()
 intents.message_content = True

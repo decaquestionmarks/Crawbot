@@ -1,6 +1,4 @@
 import urllib.request as req
-from pathlib import Path
-
 
 def get_ts(target: str, file: str, auth: str, prefix:str=None) -> None:
     request = req.Request(target + file + '.ts?token='+auth)
