@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from discord.ext import commands
 from pathlib import Path
 
+import scrapers
+import filters
 from downloading import get_ts
 
 BASETARGET = 'https://raw.githubusercontent.com/matteoruscitti/Dawn/master/data/'
@@ -23,8 +25,18 @@ GUILD = os.getenv('DISCORD_GUILD')
 #if not Path("basepokedex.ts").exists():
 #    get_ts(BASETARGET, "pokedex", AUTH, "base")
 
-
-
+pokemon = scrapers.pokemon_to_dict("basepokedex.ts", {})
+pokemon = scrapers.pokemon_to_dict("pokedex.ts", pokemon)
+learnsets = scrapers.learnset_to_dict("baselearnsets.ts", {})
+learnsets = scrapers.learnset_to_dict("learnsets.ts", learnsets)
+moves = scrapers.moves_to_dict("basemoves.ts",{})
+moves = scrapers.moves_to_dict("moves.ts", moves)
+abilities = scrapers.abilities_to_dict("baseabilities.ts", {})
+abilities = scrapers.abilities_to_dict("abilities.ts", abilities)
+justnewpokemon = scrapers.pokemon_to_dict("pokedex.ts", {})
+oldpokemon = scrapers.pokemon_to_dict("basepokedex.ts", {})
+abtext = scrapers.abilities_to_dict("abilitytext.ts",{})
+motext = scrapers.moves_to_dict("movestext.ts",{})
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -54,8 +66,54 @@ async def wiki(ctx):
 
 @bot.command(name='sprite', help='Shows a sprite')
 async def sprite(ctx, arg):
-    await ctx.channel.send(f"https://play.dawn-ps.com/sprites/custom/{arg.lower()}.png")
+    try:
+        if (arg.lower() in justnewpokemon.keys() or arg.replace("-","").lower() in justnewpokemon.keys()) and arg.lower() not in oldpokemon.keys():
+            await ctx.channel.send(f"https://play.dawn-ps.com/sprites/custom/{arg.lower()}.png")
+        else:
+            await ctx.channel.send("I cannot find that sprite")
+    except Exception as e:
+        await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
 
+@bot.command(name='dt', help='Shows infor about a Pokemon')
+async def data(ctx, *args):
+    try:
+        arg = " ".join(args)
+        arg = arg.replace("-","")
+        arg = arg.replace(" ", "")
+        arg = arg.lower()
+        print(arg)
+        embed = discord.Embed()
+        if arg in pokemon.keys():
+            embed = discord.Embed(title = pokemon[arg]["name"][1:-1])
+            embed.add_field(name = "Type", value = "/".join(pokemon[arg]["types"]).replace("'",""), inline = False)
+            embed.add_field(name = "Abilities", value = str(pokemon[arg]["abilities"])[1:-1].replace("'",""), inline = False)
+            embed.add_field(name = "Stats", value = "/".join(str(value) for value in list(pokemon[arg]["baseStats"].values())))
+            embed.add_field(name = "Total", value=sum(list(pokemon[arg]["baseStats"].values())), inline = True)
+        elif arg in moves.keys():
+            embed = discord.Embed(title = moves[arg]["name"][1:-1])
+            try:
+                embed.description = motext[arg]["shortDesc"][1:-1]
+            except KeyError:
+                embed.description = "Unchanged"
+            embed.add_field(name = "Type", value = moves[arg]["type"][1:-1], inline = True)
+            embed.add_field(name = "Power", value = moves[arg]["basePower"], inline = True)
+            embed.add_field(name = "Category", value = moves[arg]["category"][1:-1], inline = True)
+            embed.add_field(name = "Accuracy", value = str(moves[arg]["accuracy"])+"%", inline=True)
+            embed.add_field(name = "PP", value = int(int(moves[arg]["pp"])*(16/10)),inline = True)
+            embed.add_field(name = "Priority", value = int(moves[arg]["priority"]), inline = True)
+            embed.add_field(name = "flags", value = ", ".join(list(moves[arg]["flags"].keys())), inline= False)
 
+        elif arg in abilities.keys():
+            embed = discord.Embed(title = abilities[arg]["name"][1:-1])
+            try:
+                embed.description = abtext[arg]["shortDesc"][1:-1]
+            except KeyError:
+                embed.description = "Unchanged"
+        else:
+            await ctx.channel.send("No data could be found in Pokemon, Moves, or Abilities")
+        if embed.title is not None:
+            await ctx.channel.send(embed = embed)
+    except Exception as e:
+        await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
 
 bot.run(TOKEN)

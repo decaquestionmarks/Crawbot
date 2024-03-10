@@ -19,7 +19,13 @@ def pokemon_to_dict(file: str, d:dict) -> dict:
                     if key in ["num", "name", "types", "baseStats", "abilities", "heightm", "weightkg", "color",
                                "eggGroups", "sanctum", "inherit"]:
                         if key == "types":
-                            ret[move][key] = list(eval(element[1:-2]))
+                            #print(eval(element[1:-2]))
+                            if type(eval(element[1:-2])) == str:
+                                retter = []
+                                retter.append(eval(element[1:-2]))
+                                ret[move][key] = retter
+                            else:
+                                ret[move][key] = list(eval(element[1:-2]))
                         elif key == "abilities" or key == "baseStats":
                             element = element.replace("{","{\"")
                             element = element.replace(":", "\":")
@@ -81,7 +87,7 @@ def moves_to_dict(file: str, d:dict) -> dict:
                     key = line.split(":")[0]
                     element = line.split(":", maxsplit=1)[1].strip()
                     if key in ["accuracy", "basePower", "category", "name", "pp", "priority", "flags", "secondary",
-                               "target", "type", "boosts", "critRatio", "self"]:
+                               "target", "type", "boosts", "critRatio", "self", "shortDesc"]:
                         if key == "secondary" or key == "self":
                             ret[move][key] = "TODO"
                         elif key == "flags" and element != "{},":
