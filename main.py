@@ -38,6 +38,9 @@ oldpokemon = scrapers.pokemon_to_dict("basepokedex.ts", {})
 abtext = scrapers.abilities_to_dict("abilitytext.ts",{})
 motext = scrapers.moves_to_dict("movestext.ts",{})
 
+def name_convert(arg:str)->str:
+    return arg.replace("-", "").replace(" ", "").lower()
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -56,6 +59,7 @@ async def on_ready():
     )
     members = '\n - '.join([member.name for member in guild.members])
     print(f'Guild Members:\n - {members}')
+
 @bot.command(name='info', help='Tells you about the bot')
 async def info(ctx):
     await ctx.channel.send(f"{ctx.author.mention} I'm the base 640 bot.")
@@ -74,13 +78,11 @@ async def sprite(ctx, arg):
     except Exception as e:
         await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
 
-@bot.command(name='dt', help='Shows infor about a Pokemon')
+@bot.command(name='dt', help='Shows info about a Pokemon')
 async def data(ctx, *args):
     try:
         arg = " ".join(args)
-        arg = arg.replace("-","")
-        arg = arg.replace(" ", "")
-        arg = arg.lower()
+        arg = name_convert(arg)
         print(arg)
         embed = discord.Embed()
         if arg in pokemon.keys():
@@ -115,5 +117,47 @@ async def data(ctx, *args):
             await ctx.channel.send(embed = embed)
     except Exception as e:
         await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
+
+@bot.command(name='ds', help='Searches for pokemon that match the criteria')
+async def dexsearch(ctx, *args):
+    pass
+
+@bot.command(name = 'ms', help = 'Searches for moves that match the criteria')
+async def movesearch(ctx, *args):
+    pass
+
+@bot.command(name = 'learn', help = 'Tells if a pokemon can learn a move')
+async def learn(ctx, *args):
+    try:
+        args = " ".join(args)
+        args = args.split(",")
+        print(args)
+        args[0] = name_convert(args[0])
+        if args[0] in learnsets.keys() and args[0] in pokemon.keys():
+            args[1] = name_convert(args[1])
+            if args[1] in moves.keys():
+                if name_convert(args[1]) in learnsets[args[0]]:
+                    await ctx.channel.send(f"{moves[args[1]]["name"][1:-1]} is learnable by {pokemon[args[0]]["name"][1:-1]}")
+                else:
+                    await ctx.channel.send(
+                        f"{moves[args[1]]["name"][1:-1]} is not learnable by {pokemon[args[0]]["name"][1:-1]}")
+            else:
+                await ctx.channel.send(f"Move {args[1]} cannot be found in the database")
+        else:
+            await ctx.channel.send(f"Pokemon {args[0]} cannot be found in the database")
+    except Exception as e:
+        await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
+
+@bot.command(name = 'weak', help = 'Shows a pokemon\'s or type\'s weaknesses')
+async def weakness(ctx, *args):
+    pass
+
+@bot.command(name = 'coverage', help = 'Shows the type coverage for a set of types')
+async def coverage(ctx, *args):
+    pass
+
+@bot.command(name = 'randpoke', help = 'Returns a random pokemon that matches the criteria')
+async def randompokemon(ctx, *args):
+    pass
 
 bot.run(TOKEN)
