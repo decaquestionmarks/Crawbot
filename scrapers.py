@@ -17,7 +17,7 @@ def pokemon_to_dict(file: str, d:dict) -> dict:
                     key = line.split(":")[0]
                     element = line.split(":", maxsplit=1)[1].strip()
                     if key in ["num", "name", "types", "baseStats", "abilities", "heightm", "weightkg", "color",
-                               "eggGroups", "sanctum", "inherit"]:
+                               "eggGroups", "sanctum", "inherit", "prevo"]:
                         if key == "types":
                             #print(eval(element[1:-2]))
                             if type(eval(element[1:-2])) == str:

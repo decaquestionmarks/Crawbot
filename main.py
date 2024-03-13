@@ -46,12 +46,17 @@ STATS = ["atk","def","hp","spa","spd","spe"]
 def name_convert(arg:str)->str:
     return arg.replace("-", "").replace(" ", "").lower()
 
+def chainlearn(p:str, move:str):
+    if "prevo" not in pokemon[p].keys() or name_convert(pokemon[p]["prevo"][1:-1]) not in learnsets.keys():
+        return move in learnsets[p]
+    else:
+        return move in learnsets[p] or chainlearn(name_convert(pokemon[p]["prevo"][1:-1]),move)
+
 def dsearch(keys:list, values:list):
     keys = set(keys)
     for value in values:
         if "|" in value:
             newvalues = value.split("|")
-            print(newvalues)
             newkeys = set()
             for v in newvalues:
                 newkeys = newkeys | set(dsearch(keys, [v]))
@@ -69,7 +74,7 @@ def dsearch(keys:list, values:list):
             keys = {key for key in keys if value in [name_convert(ab) for ab in pokemon[key]["abilities"].values()]}
         elif name_convert(value) in moves.keys():
             value = name_convert(value)
-            keys = {key for key in keys if (key in learnsets.keys() and value in learnsets[key])}
+            keys = {key for key in keys if (key in learnsets.keys() and chainlearn(key, value))}
         elif ">=" in value:
             value = value.split(">=")
             if name_convert(value[0]) in STATS:
@@ -123,6 +128,7 @@ def msearch(keys:list, values:list):
     for value in values:
         if name_convert(value) in TYPES:
             pass
+
 
 
 intents = discord.Intents.default()
@@ -234,7 +240,7 @@ async def learn(ctx, *args):
         if args[0] in learnsets.keys() and args[0] in pokemon.keys():
             args[1] = name_convert(args[1])
             if args[1] in moves.keys():
-                if name_convert(args[1]) in learnsets[args[0]]:
+                if chainlearn(args[0], name_convert(args[1])):
                     await ctx.channel.send(f"{moves[args[1]]["name"][1:-1]} is learnable by {pokemon[args[0]]["name"][1:-1]}")
                 else:
                     await ctx.channel.send(
