@@ -42,6 +42,7 @@ motext = scrapers.moves_to_dict("movestext.ts",{})
 TYPES = ["normal","fire","water","grass","electric","psychic","ice","fighting","flying","poison","ground","rock","bug","ghost","dragon","dark","steel","fairy","elastic","clean"]
 CATEGORIES = ["physical","special","status"]
 STATS = ["atk","def","hp","spa","spd","spe"]
+FLAGS = ['gravity', 'recharge', 'mirror', 'failencore', 'bite', 'mustpressure', 'failmimic', 'failinstruct', 'metronome', 'bypasssub', 'nonsky', 'nosleeptalk', 'reflectable', 'noparentalbond', 'distance', 'snatch', 'futuremove', 'wind', 'defrost', 'noassist', 'allyanim', 'protect', 'heal', 'punch', 'contact', 'failmefirst', 'failcopycat', 'pledgecombo', 'dance', 'charge', 'sound', 'pulse', 'slicing', 'bullet', 'powder', 'cantusetwice']
 
 def name_convert(arg:str)->str:
     return arg.replace("-", "").replace(" ", "").lower()
@@ -132,9 +133,82 @@ def dsearch(keys:list, values:list):
 def msearch(keys:list, values:list):
     keys = set(keys)
     for value in values:
-        if name_convert(value) in TYPES:
-            pass
+        if "|" in value:
+            newvalues = value.split("|")
+            newkeys = set()
+            for v in newvalues:
+                newkeys = newkeys | set(msearch(keys, [v]))
+            keys = newkeys
+        elif name_convert(value).startswith("!"):
+            newvalues = []
+            newvalues.append(name_convert(value)[1:])
+            keys = keys - set(msearch(keys,newvalues))
+        elif name_convert(value) in TYPES:
+            value = name_convert(value)
+            value = value[:1].upper() + value[1:]
+            keys = {key for key in keys if moves[key]["type"][1:-1]==value}
+        elif name_convert(value) in learnsets.keys():
+            value = name_convert(value)
+            keys &= set(learnsets[value])
+        elif name_convert(value) in CATEGORIES:
+            value = name_convert(value)
+            value = value[:1].upper() + value[1:]
+            keys = {key for key in keys if moves[key]["category"][1:-1] == value}
+        elif name_convert(value) in FLAGS:
+            value = name_convert(value)
+            keys = {key for key in keys if type(moves[key]["flags"]) == dict and value in moves[key]["flags"].keys()}
+        elif ">=" in value:
+            value = value.split(">=")
+            if name_convert(value[0]) == "bp":
+                keys = {key for key in keys if (float(moves[key]["basePower"]) >= float(value[1]))}
+            if name_convert(value[0]) == "acc":
+                keys = {key for key in keys if (moves[key]["accuracy"]=="true" or float(moves[key]["accuracy"]) >= float(value[1]))}
+            if name_convert(value[0]) == "pp":
+                keys = {key for key in keys if (float(moves[key]["pp"]) >= float(value[1]))}
+            if name_convert(value[0]) == "priority":
+                keys = {key for key in keys if (float(moves[key]["priority"]) >= float(value[1]))}
+        elif "<=" in value:
+            value = value.split("<=")
+            if name_convert(value[0]) == "bp":
+                keys = {key for key in keys if (float(moves[key]["basePower"]) <= float(value[1]))}
+            if name_convert(value[0]) == "acc":
+                keys = {key for key in keys if (moves[key]["accuracy"]!="true" and float(moves[key]["accuracy"]) <= float(value[1]))}
+            if name_convert(value[0]) == "pp":
+                keys = {key for key in keys if (float(moves[key]["pp"]) <= float(value[1]))}
+            if name_convert(value[0]) == "priority":
+                keys = {key for key in keys if (float(moves[key]["priority"]) <= float(value[1]))}
+        elif "=" in value:
+            value = value.split("=")
+            if name_convert(value[0]) == "bp":
+                keys = {key for key in keys if (float(moves[key]["basePower"]) == float(value[1]))}
+            if name_convert(value[0]) == "acc":
+                keys = {key for key in keys if ((moves[key]["accuracy"]) == (value[1].strip()))}
+            if name_convert(value[0]) == "pp":
+                keys = {key for key in keys if (float(moves[key]["pp"]) == float(value[1]))}
+            if name_convert(value[0]) == "priority":
+                keys = {key for key in keys if (float(moves[key]["priority"]) == float(value[1]))}
+        elif ">" in value:
+            value = value.split(">")
+            if name_convert(value[0]) == "bp":
+                keys = {key for key in keys if (float(moves[key]["basePower"]) > float(value[1]))}
+            if name_convert(value[0]) == "acc":
+                keys = {key for key in keys if (moves[key]["accuracy"]=="true" or float(moves[key]["accuracy"]) > float(value[1]))}
+            if name_convert(value[0]) == "pp":
+                keys = {key for key in keys if (float(moves[key]["pp"]) > float(value[1]))}
+            if name_convert(value[0]) == "priority":
+                keys = {key for key in keys if (float(moves[key]["priority"]) > float(value[1]))}
+        elif "<" in value:
+            value = value.split("<")
+            if name_convert(value[0]) == "bp":
+                keys = {key for key in keys if (float(moves[key]["basePower"]) < float(value[1]))}
+            if name_convert(value[0]) == "acc":
+                keys = {key for key in keys if (moves[key]["accuracy"]!="true" and float(moves[key]["accuracy"]) < float(value[1]))}
+            if name_convert(value[0]) == "pp":
+                keys = {key for key in keys if (float(moves[key]["pp"]) < float(value[1]))}
+            if name_convert(value[0]) == "priority":
+                keys = {key for key in keys if (float(moves[key]["priority"]) < float(value[1]))}
 
+    return sorted(list(keys))
 
 
 intents = discord.Intents.default()
@@ -235,7 +309,22 @@ async def dexsearch(ctx, *args):
 
 @bot.command(name = 'ms', help = 'Searches for moves that match the criteria(In Progress)')
 async def movesearch(ctx, *args):
-    pass
+    try:
+        args = (" ".join(args)).split(",")
+        ret = msearch(list(moves.keys()), args)
+        print(len(ret))
+        if len(ret) != 1040 and len(ret) != 0:
+            ret = ", ".join([moves[key]["name"][1:-1] for key in ret])
+            while len(ret) > 2000:
+                await ctx.channel.send(", ".join(ret.split(", ")[:100]))
+                ret = ", ".join(ret.split(", ")[100:])
+            await ctx.channel.send(ret)
+        elif len(ret) == 0:
+            await ctx.channel.send("Search resulted in no Moves.")
+        else:
+            await ctx.channel.send("Search resulted in all Moves.")
+    except Exception as e:
+        await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
 
 @bot.command(name = 'learn', help = 'Tells if a pokemon can learn a move')
 async def learn(ctx, *args):
