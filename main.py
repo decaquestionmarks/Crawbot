@@ -262,6 +262,18 @@ async def coverage(ctx, *args):
 
 @bot.command(name = 'randpoke', help = 'Returns a random pokemon that matches the criteria(In Progress)')
 async def randompokemon(ctx, *args):
-    pass
+    try:
+        args = (" ".join(args)).split(",")
+        amount = args[0]
+        args = args[1:]
+        if int(amount) < 24:
+            ret = dsearch(list(pokemon.keys()), args)
+            ret = random.choices(ret, k=int(amount))
+            ret = ", ".join([pokemon[key]["name"][1:-1] for key in ret])
+            await ctx.channel.send(ret)
+        else:
+            await ctx.channel.send("I will not generate that many random pokemon")
+    except Exception as e:
+        await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
 
 bot.run(TOKEN)
