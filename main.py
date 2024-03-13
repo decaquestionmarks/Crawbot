@@ -121,6 +121,12 @@ def dsearch(keys:list, values:list):
                 keys = {key for key in keys if (float(pokemon[key]["heightm"]) < float(value[1]))}
         elif name_convert(value) == "hasset":
             keys = {key for key in keys if key in learnsets.keys() and len(learnsets[key])>0}
+        elif name_convert(value) == "fe":
+            keys = {key for key in keys if "evos" not in pokemon[key].keys()}
+        elif name_convert(value) == "nfe":
+            keys = {key for key in keys if "evos" in pokemon[key].keys() and "prevo" in pokemon[key].keys()}
+        elif name_convert(value) == "lc":
+            keys = {key for key in keys if "evos" in pokemon[key].keys() and "prevo" not in pokemon[key].keys()}
     return sorted(list(keys))
 
 def msearch(keys:list, values:list):
@@ -260,7 +266,7 @@ async def weakness(ctx, *args):
 async def coverage(ctx, *args):
     pass
 
-@bot.command(name = 'randpoke', help = 'Returns a random pokemon that matches the criteria(In Progress)')
+@bot.command(name = 'randpoke', help = 'Returns a random pokemon that matches the criteria')
 async def randompokemon(ctx, *args):
     try:
         args = (" ".join(args)).split(",")
