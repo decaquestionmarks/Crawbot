@@ -1,5 +1,7 @@
 # bot.py
 import os
+import random
+
 import discord
 from dotenv import load_dotenv
 from discord.ext import commands
@@ -37,9 +39,90 @@ justnewpokemon = scrapers.pokemon_to_dict("pokedex.ts", {})
 oldpokemon = scrapers.pokemon_to_dict("basepokedex.ts", {})
 abtext = scrapers.abilities_to_dict("abilitytext.ts",{})
 motext = scrapers.moves_to_dict("movestext.ts",{})
+TYPES = ["normal","fire","water","grass","electric","psychic","ice","fighting","flying","poison","ground","rock","bug","ghost","dragon","dark","steel","fairy","elastic","clean"]
+CATEGORIES = ["physical","special","status"]
+STATS = ["atk","def","hp","spa","spd","spe"]
 
 def name_convert(arg:str)->str:
     return arg.replace("-", "").replace(" ", "").lower()
+
+def dsearch(keys:list, values:list):
+    keys = set(keys)
+    for value in values:
+        if name_convert(value).startswith("!"):
+            newvalues = []
+            newvalues.append(name_convert(value)[1:])
+            keys = keys - set(dsearch(keys,newvalues))
+        elif "|" in value:
+            newvalues = value.split("|")
+            newkeys = set()
+            for v in newvalues:
+                newkeys = newkeys | set(dsearch(keys,[v]))
+            keys = newkeys
+        elif name_convert(value) in TYPES:
+            value = name_convert(value)
+            value = value[:1].upper() + value[1:]
+            keys = {key for key in keys if value in pokemon[key]["types"]}
+        elif name_convert(value) in abilities.keys():
+            value = name_convert(value)
+            keys = {key for key in keys if value in [name_convert(ab) for ab in pokemon[key]["abilities"].values()]}
+        elif name_convert(value) in moves.keys():
+            value = name_convert(value)
+            keys = {key for key in keys if (key in learnsets.keys() and value in learnsets[key])}
+        elif ">=" in value:
+            value = value.split(">=")
+            if name_convert(value[0]) in STATS:
+                keys = {key for key in keys if (pokemon[key]["baseStats"][name_convert(value[0])]>=int(value[1]))}
+            if name_convert(value[0]) == "weight":
+                keys = {key for key in keys if (float(pokemon[key]["weightkg"]) >= float(value[1]))}
+            if name_convert(value[0]) == "height":
+                keys = {key for key in keys if (float(pokemon[key]["heightm"]) >= float(value[1]))}
+        elif "<=" in value:
+            value = value.split("<=")
+            if name_convert(value[0]) in STATS:
+                keys = {key for key in keys if
+                        (pokemon[key]["baseStats"][name_convert(value[0])] <= int(value[1]))}
+            if name_convert(value[0]) == "weight":
+                keys = {key for key in keys if (float(pokemon[key]["weightkg"]) <= float(value[1]))}
+            if name_convert(value[0]) == "height":
+                keys = {key for key in keys if (float(pokemon[key]["heightm"]) <= float(value[1]))}
+        elif "=" in value:
+            value = value.split("=")
+            if name_convert(value[0]) in STATS:
+                keys = {key for key in keys if
+                        (pokemon[key]["baseStats"][name_convert(value[0])] == int(value[1]))}
+            if name_convert(value[0]) == "weight":
+                keys = {key for key in keys if (float(pokemon[key]["weightkg"]) == float(value[1]))}
+            if name_convert(value[0]) == "height":
+                keys = {key for key in keys if (float(pokemon[key]["heightm"]) == float(value[1]))}
+        elif ">" in value:
+            value = value.split(">")
+            if name_convert(value[0]) in STATS:
+                keys = {key for key in keys if
+                        (pokemon[key]["baseStats"][name_convert(value[0])] > int(value[1]))}
+            if name_convert(value[0]) == "weight":
+                keys = {key for key in keys if (float(pokemon[key]["weightkg"]) > float(value[1]))}
+            if name_convert(value[0]) == "height":
+                keys = {key for key in keys if (float(pokemon[key]["heightm"]) > float(value[1]))}
+        elif "<" in value:
+            value = value.split("<")
+            if name_convert(value[0]) in STATS:
+                keys = {key for key in keys if
+                        (pokemon[key]["baseStats"][name_convert(value[0])] < int(value[1]))}
+            if name_convert(value[0]) == "weight":
+                keys = {key for key in keys if (float(pokemon[key]["weightkg"]) < float(value[1]))}
+            if name_convert(value[0]) == "height":
+                keys = {key for key in keys if (float(pokemon[key]["heightm"]) < float(value[1]))}
+        elif name_convert(value) == "hasset":
+            keys = {key for key in keys if key in learnsets.keys() and len(learnsets[key])>0}
+    return sorted(list(keys))
+
+def msearch(keys:list, values:list):
+    keys = set(keys)
+    for value in values:
+        if name_convert(value) in TYPES:
+            pass
+
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -62,7 +145,8 @@ async def on_ready():
 
 @bot.command(name='info', help='Tells you about the bot')
 async def info(ctx):
-    await ctx.channel.send(f"{ctx.author.mention} I'm the base 640 bot.")
+    message = random.choice(["I'm the base 640 bot.", "Careful, I'm a bit of Klutz.", "Worst STABs since 2020.", "I wonder what I can't learn?"])
+    await ctx.channel.send(f"{ctx.author.mention}"+message)
 
 @bot.command(name='wiki', help='Shows the wiki link')
 async def wiki(ctx):
@@ -120,9 +204,23 @@ async def data(ctx, *args):
 
 @bot.command(name='ds', help='Searches for pokemon that match the criteria')
 async def dexsearch(ctx, *args):
-    pass
+    try:
+        args = (" ".join(args)).split(",")
+        ret  = dsearch(list(pokemon.keys()),args)
+        if len(ret) != 1486 and len(ret) != 0:
+            ret = ", ".join([pokemon[key]["name"][1:-1]for key in ret])
+            while len(ret)>2000:
+                await ctx.channel.send(", ".join(ret.split(", ")[:100]))
+                ret = ", ".join(ret.split(", ")[100:])
+            await ctx.channel.send(ret)
+        elif len(ret) == 0:
+            await ctx.channel.send("Search resulted in no Pokemon.")
+        else:
+            await ctx.channel.send("Search resulted in all Pokemon.")
+    except Exception as e:
+        await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
 
-@bot.command(name = 'ms', help = 'Searches for moves that match the criteria')
+@bot.command(name = 'ms', help = 'Searches for moves that match the criteria(In Progress)')
 async def movesearch(ctx, *args):
     pass
 
@@ -131,7 +229,6 @@ async def learn(ctx, *args):
     try:
         args = " ".join(args)
         args = args.split(",")
-        print(args)
         args[0] = name_convert(args[0])
         if args[0] in learnsets.keys() and args[0] in pokemon.keys():
             args[1] = name_convert(args[1])
@@ -148,15 +245,15 @@ async def learn(ctx, *args):
     except Exception as e:
         await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
 
-@bot.command(name = 'weak', help = 'Shows a pokemon\'s or type\'s weaknesses')
+@bot.command(name = 'weak', help = 'Shows a pokemon\'s or type\'s weaknesses(In Progress)')
 async def weakness(ctx, *args):
     pass
 
-@bot.command(name = 'coverage', help = 'Shows the type coverage for a set of types')
+@bot.command(name = 'coverage', help = 'Shows the type coverage for a set of types(In Progress)')
 async def coverage(ctx, *args):
     pass
 
-@bot.command(name = 'randpoke', help = 'Returns a random pokemon that matches the criteria')
+@bot.command(name = 'randpoke', help = 'Returns a random pokemon that matches the criteria(In Progress)')
 async def randompokemon(ctx, *args):
     pass
 
