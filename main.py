@@ -49,16 +49,17 @@ def name_convert(arg:str)->str:
 def dsearch(keys:list, values:list):
     keys = set(keys)
     for value in values:
-        if name_convert(value).startswith("!"):
+        if "|" in value:
+            newvalues = value.split("|")
+            print(newvalues)
+            newkeys = set()
+            for v in newvalues:
+                newkeys = newkeys | set(dsearch(keys, [v]))
+            keys = newkeys
+        elif name_convert(value).startswith("!"):
             newvalues = []
             newvalues.append(name_convert(value)[1:])
             keys = keys - set(dsearch(keys,newvalues))
-        elif "|" in value:
-            newvalues = value.split("|")
-            newkeys = set()
-            for v in newvalues:
-                newkeys = newkeys | set(dsearch(keys,[v]))
-            keys = newkeys
         elif name_convert(value) in TYPES:
             value = name_convert(value)
             value = value[:1].upper() + value[1:]
