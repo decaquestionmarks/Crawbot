@@ -73,8 +73,23 @@ def getweak(types:list) -> list[set]:
         #print(ret)
     return ret
 def getcoverage(types:list) -> list[set]:
-    pass
+    types = [name_convert(i) for i in types]
+    ret = [set(), set(TYPES), set(TYPES), set(TYPES)]
+    for i in types:
+        # print(ret)
+        ret[0] |= CHART[i]["off"][0]
+        ret[2] &= CHART[i]["off"][1]
+        ret[3] &= CHART[i]["off"][2]
 
+        ret[1] -= ret[0]
+        ret[2] -= ret[0]
+        ret[3] -= ret[0]
+        ret[3] -= ret[2]
+        # print(ret)
+    ret[1] -= ret[0]
+    ret[1] -= ret[2]
+    ret[1] -= ret[3]
+    return ret
 def chainlearn(p:str, move:str):
     if "prevo" not in pokemon[p].keys() or name_convert(pokemon[p]["prevo"][1:-1]) not in learnsets.keys():
         return move in learnsets[p]
@@ -242,8 +257,6 @@ def msearch(keys:list, values:list):
                 keys = {key for key in keys if (float(moves[key]["pp"]) < float(value[1]))}
             if name_convert(value[0]) == "priority":
                 keys = {key for key in keys if (float(moves[key]["priority"]) < float(value[1]))}
-
-
     return sorted(list(keys))
 
 
@@ -382,7 +395,7 @@ async def learn(ctx, *args):
     except Exception as e:
         await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
 
-@bot.command(name = 'weak', help = 'Shows a pokemon\'s or type\'s weaknesses(In Progress)')
+@bot.command(name = 'weak', help = 'Shows a pokemon\'s or type\'s weaknesses')
 async def weakness(ctx, *args):
     try:
         args = (" ".join(args)).split(",")
@@ -399,9 +412,23 @@ async def weakness(ctx, *args):
     except Exception as e:
         await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
 
-@bot.command(name = 'coverage', help = 'Shows the type coverage for a set of types(In Progress)')
+@bot.command(name = 'coverage', help = 'Shows the type coverage for a set of types')
 async def coverage(ctx, *args):
-    pass
+    try:
+        args = (" ".join(args)).split(",")
+        ret = getcoverage(args)
+        # print(ret)
+        ret = [sorted([value[:1].upper() + value[1:] for value in s]) for s in ret]
+        embed = discord.Embed(title = ",".join(args))
+        embed.add_field(name = "Super Effective: ", value = ", ".join(ret[0]), inline = False)
+        embed.add_field(name = "Effective: ", value = ", ".join(ret[1]), inline = False)
+        if len(ret[2]) != 0:
+            embed.add_field(name = "Not Very Effective: ", value = ", ".join(ret[2]), inline = False)
+        if len(ret[3]) != 0:
+            embed.add_field(name = "No Effect: ", value = ", ".join(ret[3]), inline = False)
+        await ctx.channel.send(embed = embed)
+    except Exception as e:
+        await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
 
 @bot.command(name = 'randpoke', help = 'Returns a random pokemon that matches the criteria')
 async def randompokemon(ctx, *args):
