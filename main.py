@@ -8,7 +8,7 @@ from discord.ext import commands
 from pathlib import Path
 
 import scrapers
-import filters
+from matchups import CHART
 from downloading import get_ts
 
 BASETARGET = 'https://raw.githubusercontent.com/matteoruscitti/Dawn/master/data/'
@@ -47,6 +47,34 @@ FLAGS = ['gravity', 'recharge', 'mirror', 'failencore', 'bite', 'mustpressure', 
 def name_convert(arg:str)->str:
     return arg.replace("-", "").replace(" ", "").lower()
 
+def getweak(types:list) -> list[set]:
+    types = [name_convert(i) for i in types]
+    if types == ["bird","normal"]:
+        types = ["normal"]
+    ret = [set(),set(TYPES),set(),set()]
+    for i in types:
+        #print(ret)
+        ret[0] |= CHART[i]["def"][0]
+        ret[2] |= CHART[i]["def"][1]
+        ret[3] |= CHART[i]["def"][2]
+        for e in ret[0].copy():
+            if e in ret[2]:
+                ret[0].remove(e)
+                ret[2].remove(e)
+                ret[1].add(e)
+        for e in ret[3]:
+            if e in ret[2]:
+                ret[2].remove(e)
+            if e in ret[0]:
+                ret[0].remove(e)
+        ret[1] -= ret[0]
+        ret[1] -= ret[2]
+        ret[1] -= ret[3]
+        #print(ret)
+    return ret
+def getcoverage(types:list) -> list[set]:
+    pass
+
 def chainlearn(p:str, move:str):
     if "prevo" not in pokemon[p].keys() or name_convert(pokemon[p]["prevo"][1:-1]) not in learnsets.keys():
         return move in learnsets[p]
@@ -64,7 +92,7 @@ def dsearch(keys:list, values:list):
             keys = newkeys
         elif name_convert(value).startswith("!"):
             newvalues = []
-            newvalues.append(name_convert(value)[1:])
+            newvalues.append(value.strip()[1:])
             keys = keys - set(dsearch(keys,newvalues))
         elif name_convert(value) in TYPES:
             value = name_convert(value)
@@ -128,6 +156,12 @@ def dsearch(keys:list, values:list):
             keys = {key for key in keys if "evos" in pokemon[key].keys() and "prevo" in pokemon[key].keys()}
         elif name_convert(value) == "lc":
             keys = {key for key in keys if "evos" in pokemon[key].keys() and "prevo" not in pokemon[key].keys()}
+        elif name_convert(value).startswith("weak"):
+            t = name_convert(value.split(" ")[1])
+            keys = {key for key in keys if t in getweak(pokemon[key]["types"])[0]}
+        elif name_convert(value).startswith("resists"):
+            t = name_convert(value.split(" ")[1])
+            keys = {key for key in keys if t in getweak(pokemon[key]["types"])[2] or t in getweak(pokemon[key]["types"])[3]}
     return sorted(list(keys))
 
 def msearch(keys:list, values:list):
@@ -149,7 +183,8 @@ def msearch(keys:list, values:list):
             keys = {key for key in keys if moves[key]["type"][1:-1]==value}
         elif name_convert(value) in learnsets.keys():
             value = name_convert(value)
-            keys &= set(learnsets[value])
+            keys = {key for key in keys if (value in learnsets.keys() and chainlearn(value, key))}
+            #keys &= set(learnsets[value])
         elif name_convert(value) in CATEGORIES:
             value = name_convert(value)
             value = value[:1].upper() + value[1:]
@@ -207,6 +242,7 @@ def msearch(keys:list, values:list):
                 keys = {key for key in keys if (float(moves[key]["pp"]) < float(value[1]))}
             if name_convert(value[0]) == "priority":
                 keys = {key for key in keys if (float(moves[key]["priority"]) < float(value[1]))}
+
 
     return sorted(list(keys))
 
@@ -307,12 +343,11 @@ async def dexsearch(ctx, *args):
     except Exception as e:
         await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
 
-@bot.command(name = 'ms', help = 'Searches for moves that match the criteria(In Progress)')
+@bot.command(name = 'ms', help = 'Searches for moves that match the criteria')
 async def movesearch(ctx, *args):
     try:
         args = (" ".join(args)).split(",")
         ret = msearch(list(moves.keys()), args)
-        print(len(ret))
         if len(ret) != 1040 and len(ret) != 0:
             ret = ", ".join([moves[key]["name"][1:-1] for key in ret])
             while len(ret) > 2000:
@@ -349,7 +384,20 @@ async def learn(ctx, *args):
 
 @bot.command(name = 'weak', help = 'Shows a pokemon\'s or type\'s weaknesses(In Progress)')
 async def weakness(ctx, *args):
-    pass
+    try:
+        args = (" ".join(args)).split(",")
+        ret = getweak(args)
+        #print(ret)
+        ret = [sorted([value[:1].upper() + value[1:] for value in s]) for s in ret]
+        embed = discord.Embed(title = ",".join(args))
+        embed.add_field(name = "Weak: ", value = ", ".join(ret[0]), inline = False)
+        embed.add_field(name = "Neutral: ", value = ", ".join(ret[1]), inline = False)
+        embed.add_field(name = "Resists: ", value = ", ".join(ret[2]), inline = False)
+        if len(ret[3])!=0:
+            embed.add_field(name = "Immune: ", value = ", ".join(ret[3]), inline = False)
+        await ctx.channel.send(embed=embed)
+    except Exception as e:
+        await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
 
 @bot.command(name = 'coverage', help = 'Shows the type coverage for a set of types(In Progress)')
 async def coverage(ctx, *args):
@@ -361,7 +409,7 @@ async def randompokemon(ctx, *args):
         args = (" ".join(args)).split(",")
         amount = args[0]
         args = args[1:]
-        if int(amount) < 24:
+        if int(amount) <= 24:
             ret = dsearch(list(pokemon.keys()), args)
             ret = random.choices(ret, k=int(amount))
             ret = ", ".join([pokemon[key]["name"][1:-1] for key in ret])
