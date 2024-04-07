@@ -510,7 +510,7 @@ async def randompokemon(ctx, *args):
 async def getchanges(ctx, arg):
     try:
         changedict = changes(arg)
-        await ctx.channel.send(changes(arg))
+        #await ctx.channel.send(changes(arg))
         embed = discord.Embed()
         embed = discord.Embed(title = changedict["name"])
         if "baseStats" in changedict.keys():
@@ -518,6 +518,8 @@ async def getchanges(ctx, arg):
             for key in changedict["baseStats"].keys():
                 statchanges+= f"{key}: {changedict["baseStats"][key]}\n"
             embed.add_field(name = "Stats", value = statchanges,inline = False)
+        if "types" in changedict.keys():
+            embed.add_field(name = "Changed Types", value = changedict["types"])
         if "abilitiesC" in changedict.keys():
             embed.add_field(name = "Changed Abilities", value = changedict["abilitiesC"],inline = False)
         if "abilitiesN" in changedict.keys():
