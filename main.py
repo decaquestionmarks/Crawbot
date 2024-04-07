@@ -37,6 +37,9 @@ abilities = scrapers.abilities_to_dict("baseabilities.ts", {})
 abilities = scrapers.abilities_to_dict("abilities.ts", abilities)
 justnewpokemon = scrapers.pokemon_to_dict("pokedex.ts", {})
 oldpokemon = scrapers.pokemon_to_dict("basepokedex.ts", {})
+oldmoves = scrapers.moves_to_dict("basemoves.ts",{})
+oldabilities = scrapers.abilities_to_dict("baseabilities.ts", {})
+oldlearnsets = scrapers.learnset_to_dict("baselearnsets.ts", {})
 abtext = scrapers.abilities_to_dict("abilitytext.ts",{})
 motext = scrapers.moves_to_dict("movestext.ts",{})
 TYPES = ["normal","fire","water","grass","electric","psychic","ice","fighting","flying","poison","ground","rock","bug","ghost","dragon","dark","steel","fairy","elastic","clean"]
@@ -259,6 +262,59 @@ def msearch(keys:list, values:list):
                 keys = {key for key in keys if (float(moves[key]["priority"]) < float(value[1]))}
     return sorted(list(keys))
 
+def changes(key:str)->dict:
+    p = name_convert(key)
+    ret = {}
+    if p not in oldlearnsets.keys():
+        ret["name"] = oldpokemon[p]["name"][1:-1]
+        if oldpokemon[p]["types"] != pokemon[p]["types"]:
+            ret["types"] = (("/".join(oldpokemon[p]["types"]) if len(
+                oldpokemon[p]["types"]) == 2 else "".join(
+                oldpokemon[p]["types"])) + " -> " + "/".join(pokemon[p]["types"]))
+        if oldpokemon[p]["baseStats"] != pokemon[p]["baseStats"]:
+            ret["baseStats"] = {}
+            for stat in oldpokemon[p]["baseStats"].keys():
+                if oldpokemon[p]["baseStats"][stat] != pokemon[p]["baseStats"][stat]:
+                    ret["baseStats"][stat] = (str(oldpokemon[p]["baseStats"][stat]) + "->" + str(
+                        pokemon[p]["baseStats"][stat]))
+        if oldpokemon[p]["abilities"] != pokemon[p]["abilities"]:
+            for ability in oldpokemon[p]["abilities"].keys():
+                if oldpokemon[p]["abilities"][ability] != pokemon[p]["abilities"][ability]:
+                    ret["abilitiesC"] = (oldpokemon[p]["abilities"][ability] + " -> " + pokemon[p]["abilities"][
+                        ability])
+            for ability in pokemon[p]["abilities"].keys():
+                if ability not in oldpokemon[p]["abilities"].keys():
+                    ret["abilitiesN"] = (ability + ": " + pokemon[p]["abilities"][ability])
+    else:
+        ret["name"] = oldpokemon[p]["name"][1:-1]
+        if oldpokemon[p]["types"] != pokemon[p]["types"]:
+            ret["types"] = (("/".join(oldpokemon[p]["types"]) if len(
+                oldpokemon[p]["types"]) == 2 else "".join(
+                oldpokemon[p]["types"])) + " -> " + "/".join(pokemon[p]["types"]))
+        if oldpokemon[p]["baseStats"] != pokemon[p]["baseStats"]:
+            ret["baseStats"] = {}
+            for stat in oldpokemon[p]["baseStats"].keys():
+                if oldpokemon[p]["baseStats"][stat] != pokemon[p]["baseStats"][stat]:
+                    ret["baseStats"][stat] = (str(oldpokemon[p]["baseStats"][stat]) + "->" + str(
+                        pokemon[p]["baseStats"][stat]))
+        if oldpokemon[p]["abilities"] != pokemon[p]["abilities"]:
+            for ability in oldpokemon[p]["abilities"].keys():
+                if oldpokemon[p]["abilities"][ability] != pokemon[p]["abilities"][ability]:
+                    ret["abilitiesC"] = (oldpokemon[p]["abilities"][ability] + " -> " + pokemon[p]["abilities"][
+                        ability])
+            for ability in pokemon[p]["abilities"].keys():
+                if ability not in oldpokemon[p]["abilities"].keys():
+                    ret["abilitiesN"] = (ability + ": " + pokemon[p]["abilities"][ability])
+        if oldlearnsets[p] != learnsets[p]:
+            gained = [moves[move]["name"][1:-1] for move in learnsets[p] if
+                      move not in oldlearnsets[p]]
+            if gained:
+                ret["gained"] = ("Gain: ", ", ".join(gained))
+            lost = [oldmoves[move]["name"][1:-1] for move in oldlearnsets[p] if
+                    move not in learnsets[p]]
+            if lost:
+                ret["lost"] = ("Lost: ", ", ".join(lost))
+    return ret
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -289,10 +345,14 @@ async def wiki(ctx):
     await ctx.channel.send(f"{ctx.author.mention} https://docs.google.com/document/d/1iY0VdTwpo1d-LvCg-Isl-zxfPQZ3nuafMLdyB044npQ/edit?usp=sharing")
 
 @bot.command(name='sprite', help='Shows a sprite')
-async def sprite(ctx, arg):
+async def sprite(ctx, *args):
     try:
-        if (arg.lower() in justnewpokemon.keys() or arg.replace("-","").lower() in justnewpokemon.keys()) and arg.lower() not in oldpokemon.keys():
-            await ctx.channel.send(f"https://play.dawn-ps.com/sprites/custom/{arg.lower()}.png")
+        if type(args)==tuple:
+            arg = " ".join(args)
+        else:
+            arg = args[0]
+        if (name_convert(arg) in justnewpokemon.keys()) and arg.lower() not in oldpokemon.keys():
+            await ctx.channel.send(f"https://play.dawn-ps.com/sprites/custom/{arg.lower().replace(" ", "")}.png")
         else:
             await ctx.channel.send("I cannot find that sprite")
     except Exception as e:
@@ -443,6 +503,33 @@ async def randompokemon(ctx, *args):
             await ctx.channel.send(ret)
         else:
             await ctx.channel.send("I will not generate that many random pokemon")
+    except Exception as e:
+        await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
+
+@bot.command(name = "changes", help = "shows a pokemon's buffs and nerfs")
+async def getchanges(ctx, arg):
+    try:
+        changedict = changes(arg)
+        await ctx.channel.send(changes(arg))
+        embed = discord.Embed()
+        embed = discord.Embed(title = changedict["name"])
+        if "baseStats" in changedict.keys():
+            statchanges = ""
+            for key in changedict["baseStats"].keys():
+                statchanges+= f"{key}: {changedict["baseStats"][key]}\n"
+            embed.add_field(name = "Stats", value = statchanges,inline = False)
+        if "abilitiesC" in changedict.keys():
+            embed.add_field(name = "Changed Abilities", value = changedict["abilitiesC"],inline = False)
+        if "abilitiesN" in changedict.keys():
+            embed.add_field(name = "New Abilities", value = changedict["abilitiesN"],inline = False)
+        if "gained" in changedict.keys():
+            embed.add_field(name = "New Moves", value = changedict["gained"][1],inline = False)
+        if "lost" in changedict.keys():
+            embed.add_field(name = "Lost Moves", value = changedict["lost"][1],inline = False)
+
+        await ctx.channel.send(embed = embed)
+
+
     except Exception as e:
         await ctx.channel.send(f"An Error has occurred, {e.__class__.__name__}: {e}")
 
