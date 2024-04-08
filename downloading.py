@@ -1,6 +1,8 @@
 import os
 import urllib.request as req
-import PyGithub
+from github import Auth
+from github import Github
+from github import GithubIntegration
 from dotenv import load_dotenv
 
 

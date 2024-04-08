@@ -102,6 +102,8 @@ def chainlearn(p:str, move:str):
 def dsearch(keys:list, values:list):
     keys = set(keys)
     for value in values:
+        #print(keys)
+        #print(value)
         if "|" in value:
             newvalues = value.split("|")
             newkeys = set()
@@ -126,6 +128,9 @@ def dsearch(keys:list, values:list):
             value = value.split(">=")
             if name_convert(value[0]) in STATS:
                 keys = {key for key in keys if (pokemon[key]["baseStats"][name_convert(value[0])]>=int(value[1]))}
+            if name_convert(value[0]) == "bst":
+                keys = {key for key in keys if
+                        (sum(pokemon[key]["baseStats"].values()) >= int(value[1]))}
             if name_convert(value[0]) == "weight":
                 keys = {key for key in keys if (float(pokemon[key]["weightkg"]) >= float(value[1]))}
             if name_convert(value[0]) == "height":
@@ -135,6 +140,9 @@ def dsearch(keys:list, values:list):
             if name_convert(value[0]) in STATS:
                 keys = {key for key in keys if
                         (pokemon[key]["baseStats"][name_convert(value[0])] <= int(value[1]))}
+            if name_convert(value[0]) == "bst":
+                keys = {key for key in keys if
+                        (sum(pokemon[key]["baseStats"].values()) <= int(value[1]))}
             if name_convert(value[0]) == "weight":
                 keys = {key for key in keys if (float(pokemon[key]["weightkg"]) <= float(value[1]))}
             if name_convert(value[0]) == "height":
@@ -144,6 +152,9 @@ def dsearch(keys:list, values:list):
             if name_convert(value[0]) in STATS:
                 keys = {key for key in keys if
                         (pokemon[key]["baseStats"][name_convert(value[0])] == int(value[1]))}
+            if name_convert(value[0]) == "bst":
+                keys = {key for key in keys if
+                        (sum(pokemon[key]["baseStats"].values()) == int(value[1]))}
             if name_convert(value[0]) == "weight":
                 keys = {key for key in keys if (float(pokemon[key]["weightkg"]) == float(value[1]))}
             if name_convert(value[0]) == "height":
@@ -153,6 +164,9 @@ def dsearch(keys:list, values:list):
             if name_convert(value[0]) in STATS:
                 keys = {key for key in keys if
                         (pokemon[key]["baseStats"][name_convert(value[0])] > int(value[1]))}
+            if name_convert(value[0]) == "bst":
+                keys = {key for key in keys if
+                        (sum(pokemon[key]["baseStats"].values()) > int(value[1]))}
             if name_convert(value[0]) == "weight":
                 keys = {key for key in keys if (float(pokemon[key]["weightkg"]) > float(value[1]))}
             if name_convert(value[0]) == "height":
@@ -162,6 +176,9 @@ def dsearch(keys:list, values:list):
             if name_convert(value[0]) in STATS:
                 keys = {key for key in keys if
                         (pokemon[key]["baseStats"][name_convert(value[0])] < int(value[1]))}
+            if name_convert(value[0]) == "bst":
+                keys = {key for key in keys if
+                        (sum(pokemon[key]["baseStats"].values()) < int(value[1]))}
             if name_convert(value[0]) == "weight":
                 keys = {key for key in keys if (float(pokemon[key]["weightkg"]) < float(value[1]))}
             if name_convert(value[0]) == "height":
@@ -178,8 +195,13 @@ def dsearch(keys:list, values:list):
             t = name_convert(value.split(" ")[1])
             keys = {key for key in keys if t in getweak(pokemon[key]["types"])[0]}
         elif name_convert(value).startswith("resists"):
+            #print(value)
+            while value.startswith(" "):
+                value = value[1:]
             t = name_convert(value.split(" ")[1])
+            #print(t)
             keys = {key for key in keys if t in getweak(pokemon[key]["types"])[2] or t in getweak(pokemon[key]["types"])[3]}
+        #print(keys)
     return sorted(list(keys))
 
 def msearch(keys:list, values:list):
