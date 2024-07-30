@@ -25,7 +25,7 @@ CHART = {
         "def":[{"water","grass","fighting","ground","steel"},{"normal","fire","poison","flying","elastic"},set()]},
 "bug":{"off":[{"grass","psychic","dark"},{"fire","fighting","poison","flying","ghost","steel","fairy"},set()],
        "def":[{"fire","flying","rock"},{"grass","fighting","ground"},set()]},
-"ghost":{"off":[{"psychic","ghost","clean"},{"dark"},{"normal"}],
+"ghost":{"off":[{"psychic","ghost"},{"dark"},{"normal"}],
          "def":[{"ghost","dark"},{"poison","bug","elastic"},{"normal","fighting"}]},
 "dragon":{"off":[{"dragon"},{"steel"},{"fairy"}],
           "def":[{"ice","dragon","fairy"},{"fire","water","electric","grass"},set()]},

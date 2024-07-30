@@ -405,6 +405,7 @@ async def data(ctx, *args):
             embed.add_field(name = "Accuracy", value = str(moves[arg]["accuracy"])+"%", inline=True)
             embed.add_field(name = "PP", value = int(int(moves[arg]["pp"])*(16/10)),inline = True)
             embed.add_field(name = "Priority", value = int(moves[arg]["priority"]), inline = True)
+            print(list(moves[arg]["flags"]))
             embed.add_field(name = "flags", value = ", ".join(list(moves[arg]["flags"].keys())), inline= False)
 
         elif arg in abilities.keys():
@@ -552,6 +553,11 @@ async def getchanges(ctx, arg):
             embed.add_field(name = "Lost Moves", value = changedict["lost"][1],inline = False)
 
         await ctx.channel.send(embed = embed)
+
+#command Ideas
+#Statcalc
+#Crawgame
+#Seperate Cog for Workshop managing
 
 
     except Exception as e:

@@ -20,4 +20,6 @@ def get_ts(target: str, file: str, auth: str, prefix:str=None) -> None:
     response.close()
 
 if __name__ == "__main__":
-    pass
+    auth = Auth.Login(USER, PASS)
+    g = Github(auth = auth)
+    print(g.get_user().login)
